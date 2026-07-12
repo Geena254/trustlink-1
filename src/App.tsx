@@ -8,6 +8,7 @@ import Withdraw from "@/pages/Withdraw";
 import Auth from "@/pages/Auth";
 import Settings from "@/pages/Settings";
 import Subscribe from "@/pages/Subscribe";
+import Developers from "@/pages/Developers";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AnimatePresence, motion } from "framer-motion";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -74,7 +75,14 @@ function AnimatedRoutes() {
             </PageWrapper>
           </ProtectedRoute>
         } />
-        
+
+        {/* Developer Portal — public docs, auth only needed for key/webhook management */}
+        <Route path="/developers" element={
+          <PageWrapper>
+            <Developers />
+          </PageWrapper>
+        } />
+
         {/* Catch-all Route */}
         <Route path="*" element={
           <PageWrapper>

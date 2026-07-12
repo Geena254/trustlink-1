@@ -1,0 +1,29 @@
+{
+  "name": "@trustlink/sdk",
+  "version": "1.0.0",
+  "description": "Official TypeScript SDK for the TrustLink escrow API",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["escrow", "mpesa", "trustlink", "blockchain", "usdc", "africa"],
+  "author": "TrustLink Protocol",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "~5.8.3"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}

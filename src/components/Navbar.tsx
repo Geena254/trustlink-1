@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, LayoutDashboard, PlusCircle, ArrowRightLeft, Settings, LogOut, Menu, X } from "lucide-react";
+import { Shield, LayoutDashboard, PlusCircle, ArrowRightLeft, Settings, LogOut, Menu, X, Code2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -34,6 +34,7 @@ export function Navbar() {
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard, public: false },
     { name: "Create", path: "/create", icon: PlusCircle, public: true },
     { name: "Withdraw", path: "/withdraw", icon: ArrowRightLeft, public: false },
+    { name: "Developers", path: "/developers", icon: Code2, public: true },
   ];
 
   const isAuthPage = location.pathname === "/auth";

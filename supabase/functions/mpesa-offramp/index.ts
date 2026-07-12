@@ -1,76 +1,75 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders, errorResponse, jsonResponse } from "../_shared/auth.ts";
+import { dispatchWebhook } from "../_shared/webhooks.ts";
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+  );
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const { escrow_id } = await req.json();
 
-    const { escrow_id } = await req.json()
+    const { data: escrow, error: fetchError } = await supabase
+      .from("escrows")
+      .select("*")
+      .eq("id", escrow_id)
+      .single();
 
-    // 1. Fetch escrow record
-    const { data: escrow, error: fetchError } = await supabaseClient
-      .from('escrows')
-      .select('*')
-      .eq('id', escrow_id)
-      .single()
+    if (fetchError || !escrow) {
+      return errorResponse("Escrow not found", 404);
+    }
 
-    if (fetchError || !escrow) throw new Error('Escrow not found')
+    if (escrow.status !== "completed") {
+      return errorResponse(
+        `Cannot initiate withdrawal: escrow status is '${escrow.status}'. Expected 'completed'.`
+      );
+    }
 
-    // 2. In a real scenario, verify on-chain that funds are released to the bridge/our wallet
-    // For this example, we assume the trigger is valid.
-    
-    // 3. Initiate M-Pesa B2C Payout (Using Daraja API mock logic)
-    // You would call: https://api.safaricom.co.ke/mpesa/b2c/v1/paymentrequest
-    const mpesaResponse = await fetch('https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest', {
-      method: 'POST',
+    const mpesaUrl = "https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest";
+
+    const mpesaResponse = await fetch(mpesaUrl, {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('MPESA_ACCESS_TOKEN')}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${Deno.env.get("MPESA_ACCESS_TOKEN")}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        InitiatorName: Deno.env.get('MPESA_INITIATOR_NAME'),
-        SecurityCredential: Deno.env.get('MPESA_SECURITY_CREDENTIAL'),
-        CommandID: 'BusinessPayment',
-        Amount: escrow.amount, // Realistically, you'd calculate the KES exchange rate here
-        PartyA: Deno.env.get('MPESA_SHORTCODE'),
+        InitiatorName: Deno.env.get("MPESA_INITIATOR_NAME"),
+        SecurityCredential: Deno.env.get("MPESA_SECURITY_CREDENTIAL"),
+        CommandID: "BusinessPayment",
+        Amount: escrow.amount,
+        PartyA: Deno.env.get("MPESA_SHORTCODE"),
         PartyB: escrow.mpesa_phone,
-        Remarks: `Escrow payment for link ${escrow_id}`,
-        QueueTimeOutURL: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mpesa-callback`,
-        ResultURL: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mpesa-callback`,
-        Occasion: 'Escrow Release'
-      })
-    })
+        Remarks: `TrustLink escrow payout ${escrow_id}`,
+        QueueTimeOutURL: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mpesa-callback`,
+        ResultURL: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mpesa-callback`,
+        Occasion: "Escrow Release",
+      }),
+    });
 
-    const mpesaResult = await mpesaResponse.json()
+    const mpesaResult = await mpesaResponse.json();
 
-    // 4. Update escrow status to 'offramp_initiated'
-    const { error: updateError } = await supabaseClient
-      .from('escrows')
-      .update({ status: 'offramp_initiated', updated_at: new Date() })
-      .eq('id', escrow_id)
+    const { error: updateError } = await supabase
+      .from("escrows")
+      .update({ status: "offramp_initiated", updated_at: new Date().toISOString() })
+      .eq("id", escrow_id);
 
-    if (updateError) throw updateError
+    if (updateError) throw updateError;
 
-    return new Response(JSON.stringify({ message: 'M-Pesa payout initiated', result: mpesaResult }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    })
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
-    })
+    await dispatchWebhook(supabase, escrow.seller_id, "offramp.initiated", {
+      ...escrow,
+      status: "offramp_initiated",
+    });
+
+    return jsonResponse({ message: "M-Pesa payout initiated", result: mpesaResult });
+  } catch (error: any) {
+    return errorResponse(error.message);
   }
-})
+});
