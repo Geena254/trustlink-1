@@ -1,4 +1,4 @@
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Verify an API key from the Authorization header.
@@ -28,7 +28,7 @@ export async function verifyApiKey(
 
   const { data, error } = await supabase
     .from("api_keys")
-    .select("user_id, mode, is_active")
+    .select("user_id, mode, is_active, monthly_request_count")
     .eq("key_hash", keyHash)
     .single();
 
