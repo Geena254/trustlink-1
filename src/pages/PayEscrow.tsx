@@ -59,54 +59,68 @@ export default function PayEscrow() {
     };
   }, [id]);
 
-  const handlePayment = async () => {
-    if (!buyerPhone) {
-      toast.error("Please enter your M-Pesa number for the payment prompt");
-      return;
-    }
+const handlePayment = async () => {
+  if (!buyerPhone) {
+    toast.error("Please enter your M-Pesa number for the payment prompt");
+    return;
+  }
+  // Basic Kenyan phone format check: 2547XXXXXXXX or 2541XXXXXXXX
+  if (!/^2547\d{8}$|^2541\d{8}$/.test(buyerPhone)) {
+    toast.error("Please enter a valid M-Pesa number (format: 2547XXXXXXXX)");
+    return;
+  }
 
-    setProcessing(true);
-    // Simulate STK Push and blockchain deposit
-    setTimeout(async () => {
-      try {
-        const { error } = await supabase
-          .from("escrows")
-          .update({ 
-            status: "deposited", 
-            buyer_wallet: "0x821...3d9a" 
-          })
-          .eq("id", id);
+  setProcessing(true);
+  try {
+    // Mark as deposited with the buyer's phone as their identifier.
+    // In production this would be replaced by a real STK Push callback.
+    const { error } = await supabase
+      .from("escrows")
+      .update({
+        status: "deposited",
+        buyer_wallet: buyerPhone, // store phone as buyer identifier until on-chain wallet is captured
+      })
+      .eq("id", id)
+      .eq("status", "pending"); // only update if still pending (prevents double-pay)
 
-        if (error) throw error;
-        
-        toast.success("Payment successful! Funds are now in escrow.");
-      } catch (error) {
-        toast.error("Payment failed. Please try again.");
-      } finally {
-        setProcessing(false);
-      }
-    }, 2000);
-  };
+    if (error) throw error;
+    toast.success("Payment received! Funds are now held in escrow.");
+  } catch (error) {
+    toast.error("Payment failed. Please try again.");
+  } finally {
+    setProcessing(false);
+  }
+};
 
-  const confirmDelivery = async () => {
-    setProcessing(true);
-    setTimeout(async () => {
-      try {
-        const { error } = await supabase
-          .from("escrows")
-          .update({ status: "completed" })
-          .eq("id", id);
+const confirmDelivery = async () => {
+  // Guard: only the buyer who paid can confirm delivery.
+  // We use buyer_wallet (which stores the buyer phone) as the identifier.
+  if (!escrow) return;
+  if (escrow.buyer_wallet && escrow.buyer_wallet !== buyerPhone) {
+    toast.error("Only the buyer who made the payment can confirm delivery.");
+    return;
+  }
+  if (!buyerPhone) {
+    toast.error("Please enter your M-Pesa number to confirm you are the buyer.");
+    return;
+  }
 
-        if (error) throw error;
-        
-        toast.success("Delivery confirmed! Funds released to merchant.");
-      } catch (error) {
-        toast.error("Confirmation failed.");
-      } finally {
-        setProcessing(false);
-      }
-    }, 1500);
-  };
+  setProcessing(true);
+  try {
+    const { error } = await supabase
+      .from("escrows")
+      .update({ status: "completed" })
+      .eq("id", id)
+      .eq("buyer_wallet", buyerPhone); // enforce ownership server-side
+
+    if (error) throw error;
+    toast.success("Delivery confirmed! Funds released to merchant.");
+  } catch (error) {
+    toast.error("Confirmation failed.");
+  } finally {
+    setProcessing(false);
+  }
+};
 
   if (loading) {
     return (

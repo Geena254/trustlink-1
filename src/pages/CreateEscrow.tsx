@@ -63,7 +63,23 @@ export default function CreateEscrow() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const isValidEvmAddress = (addr: string) => /^0x[0-9a-fA-F]{40}$/.test(addr);
+
   const handleSubmit = async () => {
+    const amount = parseFloat(formData.amount);
+    if (isNaN(amount) || amount < 1) {
+      toast.error("Minimum escrow amount is 1 USDC.");
+      return;
+    }
+    if (amount > 50000) {
+      toast.error("Maximum escrow amount is 50,000 USDC.");
+      return;
+    }
+    if (!isValidEvmAddress(formData.seller_wallet)) {
+      toast.error("Invalid wallet address. Must be a valid EVM address (0x followed by 40 hex characters).");
+      return;
+    }
+
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -74,13 +90,17 @@ export default function CreateEscrow() {
         return;
       }
 
-      const payoutValue = 
+      const payoutValue =
         formData.payout_method === 'phone' ? formData.mpesa_phone :
         formData.payout_method === 'paybill' ? formData.paybill :
         formData.till_number;
 
       if (!payoutValue) {
         toast.error(`Please provide your ${formData.payout_method} details`);
+        return;
+      }
+      if (formData.payout_method === 'phone' && !/^2547\d{8}$|^2541\d{8}$/.test(formData.mpesa_phone)) {
+        toast.error("Invalid M-Pesa phone. Use format: 2547XXXXXXXX");
         return;
       }
 

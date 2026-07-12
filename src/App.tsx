@@ -8,6 +8,7 @@ import Withdraw from "@/pages/Withdraw";
 import Auth from "@/pages/Auth";
 import Settings from "@/pages/Settings";
 import Subscribe from "@/pages/Subscribe";
+import SubscribeCallback from "@/pages/SubscribeCallback";
 import Developers from "@/pages/Developers";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AnimatePresence, motion } from "framer-motion";
@@ -58,6 +59,11 @@ function AnimatedRoutes() {
               <Subscribe />
             </PageWrapper>
           </ProtectedRoute>
+        } />
+        <Route path="/subscribe/callback" element={
+          <PageWrapper>
+            <SubscribeCallback />
+          </PageWrapper>
         } />
 
         {/* Protected Merchant Routes (Subscription Required) */}

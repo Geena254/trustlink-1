@@ -43,6 +43,26 @@ export function Navbar() {
 
   if (isAuthPage) return null;
 
+  // On pay pages, show a minimal bar: just the brand + Developers link
+  if (isPayPage) {
+    return (
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
+        <div className="container max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2 group">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground group-hover:scale-105 transition-transform shadow-lg shadow-primary/20">
+              <Shield className="w-5 h-5" />
+            </div>
+            <span className="text-xl font-bold tracking-tight italic hidden sm:inline-block">TrustLink</span>
+          </Link>
+          <Link to="/developers" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-2">
+            <Code2 className="w-4 h-4" />
+            Developers
+          </Link>
+        </div>
+      </nav>
+    );
+  }
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
       <div className="container max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">

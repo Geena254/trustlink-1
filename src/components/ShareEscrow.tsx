@@ -27,7 +27,7 @@ export function ShareEscrow({ escrowId, amount, currency, trigger }: ShareEscrow
     }
   };
 
-  const shareText = `Secure escrow payment for ${amount} ${currency}. Pay safely via Dala.`;
+  const shareText = `Secure escrow payment for ${amount} ${currency}. Pay safely via TrustLink.`;
 
   const shareToTwitter = () => {
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');

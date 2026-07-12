@@ -51,28 +51,18 @@ export default function Withdraw() {
 
     setProcessing(escrow.id);
     try {
-      // In a real app, this would call the Edge Function for MPesa payment
-      const { error } = await supabase
-        .from("escrows")
-        .update({ status: "offramp_initiated" })
-        .eq("id", escrow.id);
+      // Call the mpesa-offramp Edge Function — it handles M-Pesa B2C + status update
+      const { error } = await supabase.functions.invoke("mpesa-offramp", {
+        body: { escrow_id: escrow.id },
+      });
 
       if (error) throw error;
 
-      toast.success(`Withdrawal to ${escrow.mpesa_phone} initiated!`);
+      toast.success(`M-Pesa payout to ${escrow.mpesa_phone ?? profile?.mpesa_phone} initiated! You'll receive funds shortly.`);
+      // Remove from list — real-time subscription will reflect status once callback fires
       setCompletedEscrows(prev => prev.filter(e => e.id !== escrow.id));
-      
-      // Simulate backend processing and callback
-      setTimeout(async () => {
-        await supabase
-          .from("escrows")
-          .update({ status: "offramp_completed" })
-          .eq("id", escrow.id);
-        toast.success(`M-Pesa payout for ${escrow.amount} USDC confirmed!`);
-      }, 5000);
-
-    } catch (error) {
-      toast.error("Withdrawal failed. Please try again.");
+    } catch (error: any) {
+      toast.error(error?.message || "Withdrawal failed. Please try again.");
     } finally {
       setProcessing(null);
     }

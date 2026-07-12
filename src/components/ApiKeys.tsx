@@ -194,7 +194,7 @@ export default function ApiKeys() {
                       value={newKeyName}
                       onChange={(e) => setNewKeyName(e.target.value)}
                       className="h-11"
-                      onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
                     />
                   </div>
                   <div className="space-y-2">

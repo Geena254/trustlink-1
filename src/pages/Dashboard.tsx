@@ -171,7 +171,12 @@ export default function Dashboard() {
       ) : filteredEscrows.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredEscrows.map((escrow, index) => (
-            <EscrowCard key={escrow.id} escrow={escrow} index={index} />
+            <EscrowCard
+              key={escrow.id}
+              escrow={escrow}
+              index={index}
+              onCancelled={(id) => setEscrows(prev => prev.filter(e => e.id !== id))}
+            />
           ))}
         </div>
       ) : (

@@ -99,7 +99,7 @@ export default function Auth() {
             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
               <Shield className="w-6 h-6" />
             </div>
-            <span className="text-2xl font-bold tracking-tight italic">Dala Escrow</span>
+            <span className="text-2xl font-bold tracking-tight italic">TrustLink</span>
           </div>
           
           <h1 className="text-5xl font-extrabold mb-6 leading-tight">
@@ -149,7 +149,7 @@ export default function Auth() {
             <CardHeader className="space-y-2 p-0 mb-8">
               <div className="lg:hidden flex items-center gap-2 mb-4">
                 <Shield className="w-8 h-8 text-primary" />
-                <span className="text-2xl font-bold tracking-tight italic">Dala Escrow</span>
+                <span className="text-2xl font-bold tracking-tight italic">TrustLink</span>
               </div>
               <CardTitle className="text-3xl font-extrabold tracking-tight">
                 {isLogin ? "Welcome back" : "Create an account"}
@@ -203,7 +203,24 @@ export default function Auth() {
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password">Password</Label>
                     {isLogin && (
-                      <button type="button" className="text-xs text-primary font-medium hover:underline">
+                      <button
+                        type="button"
+                        className="text-xs text-primary font-medium hover:underline"
+                        onClick={async () => {
+                          if (!email) {
+                            toast.error("Enter your email address above first.");
+                            return;
+                          }
+                          const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                            redirectTo: `${window.location.origin}/auth`,
+                          });
+                          if (error) {
+                            toast.error(error.message);
+                          } else {
+                            toast.success("Password reset email sent! Check your inbox.");
+                          }
+                        }}
+                      >
                         Forgot password?
                       </button>
                     )}

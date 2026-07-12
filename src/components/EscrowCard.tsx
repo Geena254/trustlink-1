@@ -1,17 +1,49 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, CheckCircle2, AlertCircle, Share2, Wallet, Smartphone, ExternalLink } from "lucide-react";
+import { Clock, CheckCircle2, AlertCircle, Share2, Wallet, Smartphone, ExternalLink, X } from "lucide-react";
 import { Escrow } from "@/types/escrow";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShareEscrow } from "./ShareEscrow";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface EscrowCardProps {
   escrow: Escrow;
   index: number;
+  onCancelled?: (id: string) => void;
 }
 
-export function EscrowCard({ escrow, index }: EscrowCardProps) {
+export function EscrowCard({ escrow, index, onCancelled }: EscrowCardProps) {
+  const [cancelling, setCancelling] = useState(false);
+
+  const handleCancel = async () => {
+    setCancelling(true);
+    try {
+      const { error } = await supabase.functions.invoke("api-cancel-escrow", {
+        body: { escrow_id: escrow.id },
+      });
+      if (error) throw error;
+      toast.success("Escrow cancelled.");
+      onCancelled?.(escrow.id);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to cancel escrow.");
+    } finally {
+      setCancelling(false);
+    }
+  };
   const statusColors: Record<string, string> = {
     pending: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
     deposited: "bg-blue-500/10 text-blue-600 border-blue-500/20",
@@ -61,7 +93,15 @@ export function EscrowCard({ escrow, index }: EscrowCardProps) {
           <div className="space-y-3 pt-2 border-t border-border/50">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Smartphone className="w-4 h-4" />
-              <span className="truncate font-mono">{escrow.mpesa_phone}</span>
+              <span className="truncate font-mono">
+                {escrow.mpesa_phone
+                  ? escrow.mpesa_phone.replace(/(\d{3})\d+(\d{2})$/, "$1·····$2")
+                  : escrow.paybill
+                  ? `Paybill: ${escrow.paybill}`
+                  : escrow.till_number
+                  ? `Till: ${escrow.till_number}`
+                  : "—"}
+              </span>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="w-4 h-4" />
@@ -69,10 +109,10 @@ export function EscrowCard({ escrow, index }: EscrowCardProps) {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="bg-muted/30 gap-2 p-3">
-          <ShareEscrow 
-            escrowId={escrow.id} 
-            amount={escrow.amount} 
+        <CardFooter className="bg-muted/30 gap-2 p-3 flex-wrap">
+          <ShareEscrow
+            escrowId={escrow.id}
+            amount={escrow.amount}
             currency={escrow.currency}
             trigger={
               <Button variant="outline" size="sm" className="flex-1 gap-2 bg-background">
@@ -87,6 +127,39 @@ export function EscrowCard({ escrow, index }: EscrowCardProps) {
               View
             </a>
           </Button>
+          {escrow.status === "pending" && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex-1 gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  disabled={cancelling}
+                >
+                  <X className="w-4 h-4" />
+                  Cancel
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Cancel this escrow?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    The escrow for <strong>{escrow.amount} {escrow.currency}</strong> will be cancelled.
+                    This can only be done while no buyer has deposited funds.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Keep it</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleCancel}
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
+                    Yes, Cancel
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </CardFooter>
       </Card>
     </motion.div>

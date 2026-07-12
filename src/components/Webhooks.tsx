@@ -93,11 +93,18 @@ export default function Webhooks() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Hash the secret before storing — the raw secret is shown once in the UI
+      // and never persisted in plaintext.
+      const enc = new TextEncoder();
+      const buf = await crypto.subtle.digest("SHA-256", enc.encode(form.secret));
+      const secretHash = Array.from(new Uint8Array(buf))
+        .map(b => b.toString(16).padStart(2, "0")).join("");
+
       const { data, error } = await supabase.from("webhooks").insert({
         user_id: user.id,
         url: form.url.trim(),
         events: form.events,
-        secret: form.secret,
+        secret: secretHash,   // store hash only
         is_active: true,
       }).select("id, url, events, is_active, created_at, last_triggered_at, failure_count").single();
 

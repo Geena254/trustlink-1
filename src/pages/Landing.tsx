@@ -10,13 +10,11 @@ export default function Landing() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        navigate("/dashboard", { replace: true });
-      }
+    supabase.auth.getSession().then(() => {
+      // Don't redirect — let logged-in users read the landing / API docs
       setLoading(false);
     });
-  }, [navigate]);
+  }, []);
 
   if (loading) return null;
 

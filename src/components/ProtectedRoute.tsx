@@ -108,8 +108,15 @@ export function ProtectedRoute({ children, requireSubscription = false }: Protec
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  if (requireSubscription && !profile?.is_subscriber) {
-    return <Navigate to="/subscribe" replace />;
+  if (requireSubscription) {
+    const hasActiveSubscription =
+      profile?.is_subscriber &&
+      (!profile?.subscription_expires_at ||
+        new Date(profile.subscription_expires_at) > new Date());
+
+    if (!hasActiveSubscription) {
+      return <Navigate to="/subscribe" replace />;
+    }
   }
 
   return <>{children}</>;

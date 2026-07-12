@@ -2,7 +2,20 @@
 
 Official TypeScript SDK for the [TrustLink](https://trustlink.app) escrow + M-Pesa API.
 
-## Installation
+## Building
+
+```bash
+cd sdk
+npm install   # installs typescript
+npm run build # runs tsc → outputs to sdk/dist/
+```
+
+After building, the package is ready to publish:
+```bash
+npm publish --access public
+```
+
+## Installation (consumers)
 
 ```bash
 npm install @trustlink/sdk

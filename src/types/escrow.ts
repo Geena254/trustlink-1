@@ -36,5 +36,6 @@ export interface Profile {
   paybill?: string;
   till_number?: string;
   is_subscriber: boolean;
+  subscription_expires_at?: string | null;
   updated_at: string;
 }

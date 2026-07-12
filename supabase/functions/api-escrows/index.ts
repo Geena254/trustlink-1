@@ -30,8 +30,36 @@ serve(async (req) => {
         return errorResponse("Missing required fields: amount, chain, seller_wallet, payout_method");
       }
 
+      // Amount limits
+      const parsedAmount = parseFloat(amount);
+      if (isNaN(parsedAmount) || parsedAmount < 1) {
+        return errorResponse("Minimum escrow amount is 1 USDC");
+      }
+      if (parsedAmount > 50000) {
+        return errorResponse("Maximum escrow amount is 50,000 USDC");
+      }
+
+      // Chain whitelist
+      const validChains = ["base", "avalanche", "lisk"];
+      if (!validChains.includes(chain)) {
+        return errorResponse(`Invalid chain '${chain}'. Must be one of: ${validChains.join(", ")}`);
+      }
+
+      // EVM wallet address format
+      if (!/^0x[0-9a-fA-F]{40}$/.test(seller_wallet)) {
+        return errorResponse("Invalid seller_wallet. Must be a valid EVM address (0x + 40 hex chars)");
+      }
+
+      // Payout method validation
+      const validMethods = ["phone", "paybill", "till"];
+      if (!validMethods.includes(payout_method)) {
+        return errorResponse(`Invalid payout_method. Must be one of: ${validMethods.join(", ")}`);
+      }
       if (payout_method === "phone" && !mpesa_phone) {
         return errorResponse("mpesa_phone is required when payout_method is 'phone'");
+      }
+      if (payout_method === "phone" && !/^2547\d{8}$|^2541\d{8}$/.test(mpesa_phone)) {
+        return errorResponse("Invalid mpesa_phone format. Use: 2547XXXXXXXX");
       }
       if (payout_method === "paybill" && !paybill) {
         return errorResponse("paybill is required when payout_method is 'paybill'");
